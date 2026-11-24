@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerador de Sites com IA</title>
+<style>
+:root{--bg:#f6f5fb;--card:#fff;--tx:#1d1b2e;--mu:#6b6882;--bd:#e3e0f0;--ac:#6d4aff;--ac2:#ff5fa2;--ac-tx:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13121c;--card:#1c1b2a;--tx:#f0eefc;--mu:#a09cbc;--bd:#322f48}}
+:root[data-theme="dark"]{--bg:#13121c;--card:#1c1b2a;--tx:#f0eefc;--mu:#a09cbc;--bd:#322f48}
+html{color-scheme:light dark;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:32px 20px 8px;text-align:center}
+h1{margin:0;font-size:clamp(26px,5vw,38px);background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin:8px auto 0;color:var(--mu);max-width:520px}
+main{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:20px;max-width:1200px;margin:20px auto;padding:0 16px 40px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:80px;resize:vertical}
+input[type=color]{padding:2px;height:42px}
+.row{display:grid;grid-template-columns:1fr 90px;gap:10px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:11px 16px;font-weight:600}
+.primary{width:100%;margin-top:18px;background:linear-gradient(90deg,var(--ac),var(--ac2));color:var(--ac-tx)}
+.ghost{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+button:disabled{opacity:.55;cursor:wait}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar .sp{flex:1}
+.frame{border:1px solid var(--bd);border-radius:12px;background:#fff;height:68vh;min-height:420px;margin:0 auto;width:100%;transition:width .2s;display:block}
+.frame.m{width:390px;max-width:100%}
+.empty{display:grid;place-items:center;height:68vh;min-height:420px;border:2px dashed var(--bd);border-radius:12px;color:var(--mu);text-align:center;padding:20px}
+#status{font-size:13px;color:var(--mu)}
+.tweak{display:flex;gap:8px;margin-top:12px}
+.tweak input{flex:1}
+.tweak button{width:auto}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>Gerador de Sites com IA</h1>
+<p>Preencha as informações, a IA cria um site bonito e você vê a prévia ao lado.</p>
+</header>
+<main>
+<section class="card">
+<label for="nome">Nome do site ou negócio</label>
+<input id="nome" placeholder="Ex.: Studio Aurora">
+<label for="tipo">Tipo de site</label>
+<select id="tipo">
+<option>Página de negócio ou loja</option><option>Portfólio pessoal</option><option>Convite de evento</option><option>Landing page de produto</option><option>Restaurante ou café</option><option>Blog ou projeto</option>
+</select>
+<label for="desc">Sobre (conte tudo que quiser)</label>
+<textarea id="desc" placeholder="O que você faz, para quem, diferenciais…"></textarea>
+<label for="itens">Serviços, produtos ou seções</label>
+<textarea id="itens" placeholder="Um item por linha"></textarea>
+<label for="contato">Contato (WhatsApp, e-mail, Instagram, endereço)</label>
+<input id="contato" placeholder="Ex.: (11) 99999-0000 · @studioaurora">
+<div class="row">
+<div><label for="estilo">Estilo</label>
+<select id="estilo"><option>Moderno e minimalista</option><option>Elegante e luxuoso</option><option>Colorido e divertido</option><option>Escuro e tecnológico</option><option>Aconchegante e artesanal</option></select></div>
+<div><label for="cor">Cor</label><input id="cor" type="color" value="#6d4aff"></div>
+</div>
+<button class="primary" id="gerar">Gerar meu site</button>
+<p id="status" role="status"></p>
+</section>
+<section class="card">
+<div class="bar hidden" id="bar">
+<button class="ghost" id="dev">Ver no celular</button>
+<button class="ghost" id="baixar">Baixar site (.html)</button>
+<span class="sp"></span>
+</div>
+<div class="empty" id="empty"><div><div style="font-size:42px">✨</div>A prévia do seu site vai aparecer aqui.</div></div>
+<iframe class="frame hidden" id="frame" title="Prévia do site" sandbox="allow-scripts"></iframe>
+<div class="tweak hidden" id="tweak">
+<input id="ajuste" placeholder="Peça um ajuste: ‘deixe o topo maior’, ‘mude para tons de verde’…">
+<button class="primary" style="margin:0" id="aplicar">Ajustar</button>
+</div>
+</section>
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var html="",sample=null,busy=false;
+function setBusy(b,msg){busy=b;$("gerar").disabled=b;$("aplicar").disabled=b;$("status").textContent=msg||""}
+function extract(t){
+  var m=t.match(/<!DOCTYPE[\s\S]*<\/html>/i)||t.match(/<html[\s\S]*<\/html>/i);
+  return m?m[0]:null;
+}
+function show(h){
+  html=h;
+  $("frame").srcdoc=h;
+  $("frame").classList.remove("hidden");$("empty").classList.add("hidden");
+  $("bar").classList.remove("hidden");$("tweak").classList.remove("hidden");
+}
+async function run(prompt,okMsg){
+  if(busy)return;
+  try{
+    if(!sample){sample=await claude.use("sample")}
+    if(!sample){setBusy(false,"A geração por IA não está disponível nesta visualização.");return}
+    setBusy(true,"A IA está criando seu site…");
+    var r=await sample(prompt,{modelTier:"complex",cache:false,onText:function(o){$("status").textContent="A IA está criando seu site… ("+o.text.length+" caracteres)"}});
+    var h=extract(r.text);
+    if(!h){setBusy(false,"Não consegui montar o site. Tente de novo.");return}
+    show(h);setBusy(false,okMsg);
+  }catch(e){
+    var c=e&&e.code;
+    setBusy(false,c==="not_granted"?"Você precisa permitir o uso da IA para gerar o site.":c==="rate_limited"?"Muitos pedidos seguidos. Aguarde um pouco.":"Algo deu errado. Tente novamente.");
+  }
+}
+var RULES="Responda SOMENTE com um documento HTML completo (começando em <!DOCTYPE html>), sem markdown e sem explicações. Regras: arquivo único com CSS e JS inline; sem imagens ou fontes externas, sem CDN (use fontes do sistema, gradientes, emojis e SVG inline); responsivo para celular; design muito bonito e moderno, com hero, seções claras, botões de contato, rodapé e pequenas animações em CSS; tudo em português do Brasil; use os dados reais fornecidos e não invente telefones, endereços ou preços.";
+$("gerar").onclick=function(){
+  var nome=$("nome").value.trim(),desc=$("desc").value.trim();
+  if(!nome&&!desc){$("status").textContent="Preencha pelo menos o nome ou a descrição.";return}
+  var p="Crie um site.\n"+RULES+"\n\nDados:\nNome: "+nome+"\nTipo: "+$("tipo").value+"\nSobre: "+desc+"\nServiços/seções:\n"+$("itens").value+"\nContato: "+$("contato").value+"\nEstilo: "+$("estilo").value+"\nCor principal: "+$("cor").value;
+  run(p,"Pronto! Veja a prévia ao lado. Peça ajustes se quiser.");
+};
+$("aplicar").onclick=function(){
+  var a=$("ajuste").value.trim();
+  if(!a||!html)return;
+  run("Aplique este ajuste ao site abaixo e devolva o documento HTML completo atualizado.\n"+RULES+"\n\nAjuste pedido: "+a+"\n\nSite atual:\n"+html,"Ajuste aplicado.");
+  $("ajuste").value="";
+};
+$("dev").onclick=function(){
+  var m=$("frame").classList.toggle("m");
+  $("dev").textContent=m?"Ver no computador":"Ver no celular";
+};
+$("baixar").onclick=async function(){
+  try{
+    var d=await claude.use("downloads");
+    if(!d){$("status").textContent="Download indisponível aqui.";return}
+    await d.save({filename:"meu-site.html",data:new Blob([html],{type:"text/html"})});
+  }catch(e){if(!e||e.code!=="declined")$("status").textContent="Não foi possível baixar."}
+};
+})();
+</script>
+</body>
+</html>
